@@ -5,106 +5,203 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Playground · Code Runner</title>
 <meta name="description" content="Online code playground — tulis & jalanin code di 35+ bahasa: JavaScript, Python, Ruby, Java, Go, Rust, C, C++, C#, PHP, dan banyak lagi. Plus live preview HTML." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%96%B6%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2314110F'/%3E%3Ctext x='50' y='72' font-size='62' font-family='monospace' font-weight='700' fill='%23CBF23E' text-anchor='middle'%3E%E2%80%BA%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet" />
 <style>
+  /* Hallmark · macrostructure: Workbench (tool shell) · genre: atmospheric
+   * theme: custom (vibe: "late-night terminal · acid-lime · mono display"
+   *   · paper oklch(15% .012 65) · accent oklch(90% .21 122) acid-lime
+   *   · Space Grotesk + JetBrains Mono) · tone: technical/bold · anchor hue: lime 122
+   * pre-emit critique: P5 H4 E5 S4 R5 V5
+   */
   :root{
-    --bg:#0d1117; --panel:#161b22; --panel-2:#1c2230; --border:#2a3140;
-    --text:#e6edf3; --muted:#8b97a7; --accent:#58a6ff; --accent-2:#7ee787;
-    --danger:#ff7b72; --warn:#e3b341;
-    --mono:'SFMono-Regular',ui-monospace,'JetBrains Mono','Cascadia Code',Menlo,Consolas,monospace;
-    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    /* paper / ink */
+    --paper-0:oklch(15% .012 65);  --paper-1:oklch(18.5% .013 62);
+    --paper-2:oklch(23% .014 60);  --paper-3:oklch(28% .016 58);
+    --line:oklch(32% .012 60);     --line-2:oklch(44% .013 60);
+    --ink:oklch(93% .012 90);      --ink-dim:oklch(72% .012 85);  --ink-faint:oklch(54% .010 78);
+    /* accent */
+    --acid:oklch(90% .21 122);     --acid-deep:oklch(82% .20 124);  --acid-ink:oklch(21% .04 120);
+    --coral:oklch(73% .17 30);     --focus:oklch(90% .21 122);
+    /* type */
+    --font-display:'Space Grotesk',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+    /* space + text */
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px;
+    --text-xs:11px; --text-sm:12px; --text-base:13px; --text-md:14px;
+    --radius-sm:6px; --radius:9px;
+    --ease-out:cubic-bezier(.2,.6,.2,1); --ease-in-out:cubic-bezier(.6,0,.3,1); --dur:.16s;
   }
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;overflow:hidden}
+  html,body{height:100%;margin:0;overflow-x:clip}
+  body{background:var(--paper-0);color:var(--ink);font-family:var(--font-display);
+    display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
-  header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:linear-gradient(180deg,#161b22,#12161d);border-bottom:1px solid var(--border);flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.2px;font-size:15px;white-space:nowrap}
-  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 12px var(--accent-2)}
-  .brand small{color:var(--muted);font-weight:500;font-size:12px}
+  /* ── atmosphere layer ─────────────────────────────────────────────── */
+  .atmos{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .atmos::before{content:'';position:absolute;inset:0;
+    background:radial-gradient(115% 70% at 50% -22%, oklch(90% .21 122 / .10), transparent 56%)}
+  .atmos::after{content:'';position:absolute;inset:0;
+    background:radial-gradient(125% 120% at 50% 42%, transparent 58%, oklch(9% .01 60 / .55))}
+  header,main{position:relative;z-index:1}
+
+  /* ── header / command bar ─────────────────────────────────────────── */
+  header{display:flex;align-items:center;gap:var(--space-4);padding:0 var(--space-5);
+    min-height:60px;flex:0 0 auto;flex-wrap:wrap;
+    background:linear-gradient(180deg, oklch(20% .014 60), oklch(16.5% .013 62));
+    border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:10px;white-space:nowrap}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acid);
+    animation:breathe 3.4s var(--ease-in-out) infinite}
+  @keyframes breathe{0%,100%{box-shadow:0 0 9px 0 oklch(90% .21 122 / .5)}
+    50%{box-shadow:0 0 17px 3px oklch(90% .21 122 / .85)}}
+  .wordmark{font-family:var(--font-mono);font-weight:700;font-size:15px;
+    letter-spacing:.17em;text-transform:uppercase;color:var(--ink)}
+  .wordmark .sl{color:var(--acid)}
   .spacer{flex:1}
 
-  select,button,input,textarea{font-family:var(--sans);font-size:13px}
-  .field{display:flex;align-items:center;gap:7px}
-  .field label{color:var(--muted);font-size:12px}
-  select{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;max-width:240px}
-  select:focus{outline:none;border-color:var(--accent)}
-  .ver{color:var(--muted);font-size:11px;font-family:var(--mono);min-width:46px;white-space:nowrap}
+  .runtime{display:flex;align-items:center;gap:10px}
+  .runtime .lbl{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--ink-faint);letter-spacing:.06em}
+  .sel-wrap{position:relative;display:inline-flex;align-items:center}
+  .sel-wrap::after{content:'▾';position:absolute;right:11px;color:var(--acid);font-size:10px;pointer-events:none}
+  select#lang{appearance:none;-webkit-appearance:none;font-family:var(--font-mono);
+    font-size:var(--text-base);font-weight:500;color:var(--ink);background:var(--paper-2);
+    border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 30px 8px 12px;
+    cursor:pointer;max-width:230px;transition:border-color var(--dur) var(--ease-out),background var(--dur) var(--ease-out)}
+  select#lang:hover{border-color:var(--line-2);background:var(--paper-3)}
+  select#lang:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-color:transparent}
+  select#lang option{background:var(--paper-1);color:var(--ink)}
+  .ver{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--acid-deep);
+    letter-spacing:.02em;white-space:nowrap;padding:4px 8px;border-radius:5px;
+    border:1px solid oklch(82% .20 124 / .28);background:oklch(82% .20 124 / .07)}
+  .ver:empty{display:none}
 
-  button{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.12s}
-  button:hover{border-color:#3d4757;background:#222a3a}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  button.run{background:linear-gradient(180deg,#238636,#1f7a31);border-color:#2ea043;color:#fff;font-weight:600}
-  button.run:hover{background:linear-gradient(180deg,#2ea043,#258a38)}
-  button.ghost{background:transparent}
-  kbd{font-family:var(--mono);font-size:10px;background:#0009;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 5px;color:var(--muted)}
+  button{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:500;
+    display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    border-radius:var(--radius-sm);transition:color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),background var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out),box-shadow var(--dur) var(--ease-out)}
+  button.ghost{background:transparent;color:var(--ink-dim);border:1px solid var(--line);
+    padding:8px 13px;letter-spacing:.04em}
+  button.ghost:hover{color:var(--ink);border-color:var(--line-2);background:var(--paper-2)}
+  button.ghost:active{transform:translateY(1px)}
+  button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.run{background:var(--acid);color:var(--acid-ink);border:1px solid var(--acid);
+    font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:9px 18px}
+  button.run:hover:not(:disabled){box-shadow:0 4px 26px -4px oklch(90% .21 122 / .6);transform:translateY(-1px)}
+  button.run:active:not(:disabled){transform:translateY(0)}
+  kbd{font-family:var(--font-mono);font-size:10px;background:oklch(21% .04 120 / .25);
+    border:1px solid oklch(21% .04 120 / .45);border-radius:4px;padding:1px 5px;color:var(--acid-ink)}
 
+  /* ── panes ────────────────────────────────────────────────────────── */
   main{flex:1;display:flex;min-height:0}
   .pane{display:flex;flex-direction:column;min-width:0;min-height:0}
-  #editorPane{flex:1;border-right:1px solid var(--border)}
-  #outPane{width:42%;min-width:300px;background:var(--panel)}
-  .pane-head{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
-  .pane-head .tag{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;font-family:var(--mono);font-size:11px}
+  #editorPane{flex:1;border-right:1px solid var(--line)}
+  #outPane{position:relative;width:42%;min-width:300px;background:var(--paper-0)}
+  #outPane::after{content:'';position:absolute;inset:39px 0 0 0;pointer-events:none;z-index:2;
+    background:repeating-linear-gradient(0deg, transparent 0 3px, oklch(0% 0 0 / .5) 3px 4px);
+    opacity:.16;mix-blend-mode:soft-light}
+  #outPane.preview-on::after{display:none}
+  .pane-head{display:flex;align-items:center;gap:9px;height:39px;padding:0 var(--space-4);
+    background:var(--paper-1);border-bottom:1px solid var(--line);font-family:var(--font-mono);
+    font-size:var(--text-xs);color:var(--ink-faint);text-transform:uppercase;letter-spacing:.2em}
+  .pane-head .gl{color:var(--acid);font-size:11px}
+  .pane-head .tag{margin-left:auto;color:var(--acid-deep);letter-spacing:.06em;text-transform:none}
+  .pane-head .tag:empty{display:none}
 
   #editor{flex:1;min-height:0}
-  #stdinWrap{border-top:1px solid var(--border);background:var(--panel);display:none}
+  #stdinWrap{border-top:1px solid var(--line);background:var(--paper-1);display:none}
   #stdinWrap.show{display:block}
-  #stdin{width:100%;height:64px;resize:vertical;background:#0d1117;color:var(--text);border:0;border-top:1px solid var(--border);padding:8px 14px;font-family:var(--mono);font-size:12.5px}
+  .stdin-label{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--ink-faint);
+    letter-spacing:.14em;text-transform:uppercase;padding:8px var(--space-4) 0}
+  .stdin-label::before{content:'› ';color:var(--acid)}
+  #stdin{width:100%;height:58px;resize:vertical;background:transparent;color:var(--ink);border:0;
+    padding:5px var(--space-4) 10px;font-family:var(--font-mono);font-size:12.5px;line-height:1.5}
+  #stdin::placeholder{color:var(--ink-faint)}
   #stdin:focus{outline:none}
 
-  #output{flex:1;margin:0;padding:14px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:#cdd6e0}
-  #output .err{color:var(--danger)}
-  #output .meta{color:var(--muted)}
-  #output .ok{color:var(--accent-2)}
-  #output .placeholder{color:var(--muted)}
+  #output{flex:1;margin:0;padding:var(--space-4);overflow:auto;font-family:var(--font-mono);
+    font-size:var(--text-base);line-height:1.62;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+  #output .err{color:var(--coral)}
+  #output .meta{color:var(--ink-faint)}
+  #output .ok{color:var(--acid)}
+  #output .placeholder{color:var(--ink-faint)}
   iframe#preview{flex:1;border:0;background:#fff;width:100%}
 
-  .spin{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:-2px}
+  /* ── spinner + boot screen ────────────────────────────────────────── */
+  .spin{width:13px;height:13px;border:2px solid var(--line-2);border-top-color:var(--acid);
+    border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:-2px}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .loading-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:var(--bg);z-index:50;color:var(--muted);font-size:13px}
+  .loading-screen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:18px;background:var(--paper-0)}
+  .loading-screen .spin{width:18px;height:18px}
+  .loading-screen .boot{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--ink-dim);
+    letter-spacing:.24em;text-transform:uppercase}
+  .loading-screen .boot::after{content:'_';color:var(--acid);animation:blink 1.05s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  @media (prefers-reduced-motion:reduce){
+    .brand .dot{animation:none;box-shadow:0 0 10px 0 oklch(90% .21 122 / .6)}
+    .boot::after{animation:none}
+    .spin{animation-duration:1.3s}
+    *{transition-duration:.01ms!important}
+  }
 
   @media (max-width:760px){
+    header{min-height:auto;padding:10px var(--space-4);gap:10px}
+    .runtime .lbl{display:none}
     main{flex-direction:column}
-    #editorPane{border-right:0;border-bottom:1px solid var(--border)}
-    #outPane{width:100%;min-width:0;height:42%}
+    #editorPane{border-right:0;border-bottom:1px solid var(--line)}
+    #outPane{width:100%;min-width:0;height:44%}
     .hide-sm{display:none}
-    select{max-width:150px}
+    select#lang{max-width:150px}
   }
 </style>
 </head>
 <body>
-  <div class="loading-screen" id="loader"><div class="spin"></div><div>Loading editor & compilers…</div></div>
+  <div class="atmos" aria-hidden="true"></div>
+
+  <div class="loading-screen" id="loader">
+    <div class="spin"></div>
+    <div class="boot">booting playground</div>
+  </div>
 
   <header>
-    <div class="brand"><span class="dot"></span>Playground <small class="hide-sm">· code runner</small></div>
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="wordmark">Playground<span class="sl">/</span></span>
+    </div>
 
-    <div class="field">
-      <label for="lang">Bahasa</label>
-      <select id="lang"></select>
+    <div class="runtime">
+      <span class="lbl hide-sm">exec.runtime</span>
+      <span class="sel-wrap"><select id="lang" aria-label="Pilih bahasa"></select></span>
       <span class="ver" id="ver"></span>
     </div>
 
-    <button class="ghost" id="stdinToggle" title="Toggle input (stdin)">⌨ stdin</button>
-    <button class="ghost" id="resetBtn" title="Reset ke contoh">↺ reset</button>
-
     <div class="spacer"></div>
 
-    <button class="ghost hide-sm" id="shareBtn" title="Copy link berisi code">🔗 share</button>
-    <button class="run" id="runBtn">▶ Run <kbd class="hide-sm">⌘⏎</kbd></button>
+    <button class="ghost" id="stdinToggle" title="Toggle input (stdin)">stdin</button>
+    <button class="ghost hide-sm" id="resetBtn" title="Reset ke contoh">reset</button>
+    <button class="ghost hide-sm" id="shareBtn" title="Copy link berisi code">share</button>
+    <button class="run" id="runBtn">Run <kbd class="hide-sm">⌘↵</kbd></button>
   </header>
 
   <main>
     <section class="pane" id="editorPane">
-      <div class="pane-head">Editor <span class="tag" id="editorTag"></span></div>
+      <div class="pane-head"><span class="gl">◇</span> Editor <span class="tag" id="editorTag"></span></div>
       <div id="editor"></div>
       <div id="stdinWrap">
-        <textarea id="stdin" placeholder="Standard input (stdin) — dibaca program lo…"></textarea>
+        <div class="stdin-label">standard input</div>
+        <textarea id="stdin" placeholder="dibaca program lo lewat stdin…"></textarea>
       </div>
     </section>
 
     <section class="pane" id="outPane">
-      <div class="pane-head">Output <span class="tag" id="outTag"></span></div>
-      <pre id="output"><span class="placeholder">▶ Tekan Run buat eksekusi. Output / error tampil di sini.</span></pre>
+      <div class="pane-head"><span class="gl">░</span> Output <span class="tag" id="outTag"></span></div>
+      <pre id="output"><span class="placeholder">▸ Tekan Run buat eksekusi — output, error & exit code tampil di sini.</span></pre>
       <iframe id="preview" sandbox="allow-scripts allow-modals allow-forms allow-popups" style="display:none"></iframe>
     </section>
   </main>
@@ -158,11 +255,11 @@ const T = {
 const HTML_TPL = `<!doctype html>
 <html>
 <head><meta charset="utf-8"></head>
-<body style="font-family:system-ui;background:#0d1117;color:#e6edf3;display:grid;place-items:center;height:100vh;margin:0">
+<body style="font-family:system-ui,sans-serif;background:#14110F;color:#E8E6DF;display:grid;place-items:center;height:100vh;margin:0">
   <div style="text-align:center">
-    <h1 style="margin:0;font-size:48px;background:linear-gradient(90deg,#58a6ff,#7ee787);-webkit-background-clip:text;color:transparent">Halo HTML!</h1>
-    <p style="color:#8b97a7">CSS-nya inline langsung di tag. Edit kiri, lihat hasil kanan.</p>
-    <button onclick="alert('JS jalan juga \\ud83d\\udc4b')" style="padding:10px 18px;border:0;border-radius:8px;background:#238636;color:#fff;cursor:pointer">Klik gue</button>
+    <h1 style="margin:0;font-size:54px;letter-spacing:-.02em;color:#CBF23E">Halo HTML!</h1>
+    <p style="color:#8A8576">CSS-nya inline langsung di tag. Edit kiri, lihat hasil kanan.</p>
+    <button onclick="alert('JS jalan juga \\ud83d\\udc4b')" style="margin-top:10px;padding:11px 22px;border:0;border-radius:7px;background:#CBF23E;color:#14110F;font-weight:700;cursor:pointer;font-family:inherit">Klik gue</button>
   </div>
 </body>
 </html>`;
@@ -214,7 +311,7 @@ setTimeout(() => {
 function makeTextareaEditor(){
   const ta = document.createElement('textarea');
   ta.spellcheck = false; ta.autocapitalize = 'off'; ta.autocomplete = 'off';
-  ta.style.cssText = 'width:100%;height:100%;border:0;resize:none;background:#0d1117;color:#e6edf3;font-family:var(--mono);font-size:13.5px;line-height:1.55;padding:12px 14px;outline:none';
+  ta.style.cssText = 'width:100%;height:100%;border:0;resize:none;background:var(--paper-0);color:var(--ink);font-family:var(--font-mono);font-size:13.5px;line-height:1.6;padding:14px 16px;outline:none';
   ta.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter'){ e.preventDefault(); run(); }
     else if (e.key === 'Tab'){ e.preventDefault(); const s=ta.selectionStart, en=ta.selectionEnd; ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(en); ta.selectionStart=ta.selectionEnd=s+2; }
@@ -238,10 +335,61 @@ function init(list){
   for (const L in firstAny) if (!compilerByLang[L]) compilerByLang[L] = firstAny[L];
 
   if (usingMonaco && typeof monaco !== 'undefined'){
+    // custom theme — match palette atmospheric (warm near-black + acid lime)
+    monaco.editor.defineTheme('atmos', {
+      base:'vs-dark', inherit:true,
+      rules:[
+        { token:'', foreground:'E8E6DF' },
+        { token:'comment', foreground:'6E685C', fontStyle:'italic' },
+        { token:'keyword', foreground:'CBF23E' },
+        { token:'keyword.control', foreground:'CBF23E' },
+        { token:'operator', foreground:'CBF23E' },
+        { token:'string', foreground:'E3B681' },
+        { token:'string.escape', foreground:'A6E6B4' },
+        { token:'number', foreground:'A6E6B4' },
+        { token:'regexp', foreground:'A6E6B4' },
+        { token:'type', foreground:'BDE96A' },
+        { token:'type.identifier', foreground:'BDE96A' },
+        { token:'function', foreground:'F0EDE3' },
+        { token:'variable', foreground:'E8E6DF' },
+        { token:'variable.predefined', foreground:'CBF23E' },
+        { token:'constant', foreground:'A6E6B4' },
+        { token:'delimiter', foreground:'8A8576' },
+        { token:'tag', foreground:'CBF23E' },
+        { token:'attribute.name', foreground:'BDE96A' },
+        { token:'attribute.value', foreground:'E3B681' },
+      ],
+      colors:{
+        'editor.background':'#14110F',
+        'editor.foreground':'#E8E6DF',
+        'editorLineNumber.foreground':'#4A463C',
+        'editorLineNumber.activeForeground':'#CBF23E',
+        'editorCursor.foreground':'#CBF23E',
+        'editor.selectionBackground':'#CBF23E26',
+        'editor.inactiveSelectionBackground':'#CBF23E12',
+        'editor.lineHighlightBackground':'#FFFFFF06',
+        'editor.lineHighlightBorder':'#00000000',
+        'editorIndentGuide.background1':'#2A2620',
+        'editorIndentGuide.activeBackground1':'#3A352C',
+        'editorWidget.background':'#1A1713',
+        'editorWidget.border':'#2E2A22',
+        'editorSuggestWidget.background':'#1A1713',
+        'editorSuggestWidget.selectedBackground':'#CBF23E1A',
+        'editorGutter.background':'#14110F',
+        'editorBracketMatch.background':'#CBF23E22',
+        'editorBracketMatch.border':'#00000000',
+        'scrollbarSlider.background':'#FFFFFF12',
+        'scrollbarSlider.hoverBackground':'#FFFFFF20',
+        'scrollbarSlider.activeBackground':'#FFFFFF28',
+        'editorOverviewRuler.border':'#00000000',
+      }
+    });
     editor = monaco.editor.create($('#editor'), {
-      value:'', language:'javascript', theme:'vs-dark', automaticLayout:true,
-      fontSize:13.5, minimap:{enabled:false}, scrollBeyondLastLine:false,
-      padding:{top:12}, tabSize:2, smoothScrolling:true,
+      value:'', language:'javascript', theme:'atmos', automaticLayout:true,
+      fontSize:13.5, lineHeight:21, fontFamily:"'JetBrains Mono', ui-monospace, Menlo, monospace",
+      fontLigatures:true, minimap:{enabled:false}, scrollBeyondLastLine:false,
+      padding:{top:14}, tabSize:2, smoothScrolling:true, cursorBlinking:'smooth',
+      cursorSmoothCaretAnimation:'on', renderLineHighlight:'all',
     });
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
   } else {
@@ -344,8 +492,8 @@ function append(cls, txt){
   span.textContent = txt;
   outEl.appendChild(span);
 }
-function showText(){ iframeEl.style.display='none'; outEl.style.display='block'; outTag.textContent=''; }
-function showPreview(html){ outEl.style.display='none'; iframeEl.style.display='block'; iframeEl.srcdoc = html; outTag.textContent='live'; }
+function showText(){ iframeEl.style.display='none'; outEl.style.display='block'; outTag.textContent=''; $('#outPane').classList.remove('preview-on'); }
+function showPreview(html){ outEl.style.display='none'; iframeEl.style.display='block'; iframeEl.srcdoc = html; outTag.textContent='live'; $('#outPane').classList.add('preview-on'); }
 
 // ── Share via URL hash ───────────────────────────────────────────────────────
 function readHash(){

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Playground · Code Runner</title>
+<meta name="description" content="Online code playground — tulis & jalanin code di 35+ bahasa: JavaScript, Python, Ruby, Java, Go, Rust, C, C++, C#, PHP, dan banyak lagi. Plus live preview HTML." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%96%B6%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel-2:#1c2230; --border:#2a3140;
+    --text:#e6edf3; --muted:#8b97a7; --accent:#58a6ff; --accent-2:#7ee787;
+    --danger:#ff7b72; --warn:#e3b341;
+    --mono:'SFMono-Regular',ui-monospace,'JetBrains Mono','Cascadia Code',Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;overflow:hidden}
+
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:linear-gradient(180deg,#161b22,#12161d);border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.2px;font-size:15px;white-space:nowrap}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 12px var(--accent-2)}
+  .brand small{color:var(--muted);font-weight:500;font-size:12px}
+  .spacer{flex:1}
+
+  select,button,input,textarea{font-family:var(--sans);font-size:13px}
+  .field{display:flex;align-items:center;gap:7px}
+  .field label{color:var(--muted);font-size:12px}
+  select{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;max-width:240px}
+  select:focus{outline:none;border-color:var(--accent)}
+  .ver{color:var(--muted);font-size:11px;font-family:var(--mono);min-width:46px;white-space:nowrap}
+
+  button{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.12s}
+  button:hover{border-color:#3d4757;background:#222a3a}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.run{background:linear-gradient(180deg,#238636,#1f7a31);border-color:#2ea043;color:#fff;font-weight:600}
+  button.run:hover{background:linear-gradient(180deg,#2ea043,#258a38)}
+  button.ghost{background:transparent}
+  kbd{font-family:var(--mono);font-size:10px;background:#0009;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 5px;color:var(--muted)}
+
+  main{flex:1;display:flex;min-height:0}
+  .pane{display:flex;flex-direction:column;min-width:0;min-height:0}
+  #editorPane{flex:1;border-right:1px solid var(--border)}
+  #outPane{width:42%;min-width:300px;background:var(--panel)}
+  .pane-head{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  .pane-head .tag{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;font-family:var(--mono);font-size:11px}
+
+  #editor{flex:1;min-height:0}
+  #stdinWrap{border-top:1px solid var(--border);background:var(--panel);display:none}
+  #stdinWrap.show{display:block}
+  #stdin{width:100%;height:64px;resize:vertical;background:#0d1117;color:var(--text);border:0;border-top:1px solid var(--border);padding:8px 14px;font-family:var(--mono);font-size:12.5px}
+  #stdin:focus{outline:none}
+
+  #output{flex:1;margin:0;padding:14px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:#cdd6e0}
+  #output .err{color:var(--danger)}
+  #output .meta{color:var(--muted)}
+  #output .ok{color:var(--accent-2)}
+  #output .placeholder{color:var(--muted)}
+  iframe#preview{flex:1;border:0;background:#fff;width:100%}
+
+  .spin{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:var(--bg);z-index:50;color:var(--muted);font-size:13px}
+
+  @media (max-width:760px){
+    main{flex-direction:column}
+    #editorPane{border-right:0;border-bottom:1px solid var(--border)}
+    #outPane{width:100%;min-width:0;height:42%}
+    .hide-sm{display:none}
+    select{max-width:150px}
+  }
+</style>
+</head>
+<body>
+  <div class="loading-screen" id="loader"><div class="spin"></div><div>Loading editor & compilers…</div></div>
+
+  <header>
+    <div class="brand"><span class="dot"></span>Playground <small class="hide-sm">· code runner</small></div>
+
+    <div class="field">
+      <label for="lang">Bahasa</label>
+      <select id="lang"></select>
+      <span class="ver" id="ver"></span>
+    </div>
+
+    <button class="ghost" id="stdinToggle" title="Toggle input (stdin)">⌨ stdin</button>
+    <button class="ghost" id="resetBtn" title="Reset ke contoh">↺ reset</button>
+
+    <div class="spacer"></div>
+
+    <button class="ghost hide-sm" id="shareBtn" title="Copy link berisi code">🔗 share</button>
+    <button class="run" id="runBtn">▶ Run <kbd class="hide-sm">⌘⏎</kbd></button>
+  </header>
+
+  <main>
+    <section class="pane" id="editorPane">
+      <div class="pane-head">Editor <span class="tag" id="editorTag"></span></div>
+      <div id="editor"></div>
+      <div id="stdinWrap">
+        <textarea id="stdin" placeholder="Standard input (stdin) — dibaca program lo…"></textarea>
+      </div>
+    </section>
+
+    <section class="pane" id="outPane">
+      <div class="pane-head">Output <span class="tag" id="outTag"></span></div>
+      <pre id="output"><span class="placeholder">▶ Tekan Run buat eksekusi. Output / error tampil di sini.</span></pre>
+      <iframe id="preview" sandbox="allow-scripts allow-modals allow-forms allow-popups" style="display:none"></iframe>
+    </section>
+  </main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script>
+const WANDBOX = 'https://wandbox.org/api';
+
+// nama bahasa Wandbox → bahasa Monaco (highlight)
+const MONACO_LANG = {
+  'Bash script':'shell','C':'c','C#':'csharp','C++':'cpp','CPP':'plaintext',
+  'Crystal':'plaintext','D':'plaintext','Elixir':'elixir','Erlang':'plaintext',
+  'Go':'go','Groovy':'java','Haskell':'plaintext','Java':'java','JavaScript':'javascript',
+  'Julia':'julia','Lazy K':'plaintext','Lisp':'plaintext','Lua':'lua','Nim':'plaintext',
+  'OCaml':'plaintext','OpenSSL':'plaintext','PHP':'php','Pascal':'pascal','Perl':'perl',
+  'Pony':'plaintext','Python':'python','R':'r','Ruby':'ruby','Rust':'rust','SQL':'sql',
+  'Scala':'scala','Swift':'swift','TypeScript':'typescript','Vim script':'plaintext','Zig':'plaintext'
+};
+
+// urutan bahasa populer di atas
+const PRI = ['JavaScript','TypeScript','Python','Ruby','Java','Go','Rust','C','C++','C#','PHP','Swift','Lua'];
+
+// template hello-world per bahasa Wandbox
+const T = {
+  JavaScript:`// JavaScript (Node.js)\nconst name = "Playground";\nconsole.log(\`Halo dari \${name}!\`);\nconsole.log([1,2,3,4].map(n => n*n));`,
+  TypeScript:`// TypeScript\nconst greet = (who: string): string => \`Halo, \${who}!\`;\nconsole.log(greet("Playground"));\n[1,2,3].forEach((n: number) => console.log(n, n*n));`,
+  Python:`# Python 3\ndef fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\nprint("Fibonacci:", [fib(i) for i in range(10)])`,
+  Ruby:`# Ruby\nputs "Halo dari Ruby!"\n(1..5).each { |i| puts "#{i} kuadrat = #{i*i}" }`,
+  Java:`// Java — class TIDAK boleh public di Wandbox (file = prog.java)\nclass Main {\n    public static void main(String[] args) {\n        System.out.println("Halo dari Java!");\n        for (int i = 1; i <= 5; i++) System.out.println(i + " -> " + (i*i));\n    }\n}`,
+  Go:`// Go\npackage main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Halo dari Go!")\n    for i := 1; i <= 5; i++ {\n        fmt.Printf("%d kuadrat = %d\\n", i, i*i)\n    }\n}`,
+  Rust:`// Rust\nfn main() {\n    println!("Halo dari Rust!");\n    for i in 1..=5 {\n        println!("{} kuadrat = {}", i, i*i);\n    }\n}`,
+  C:`// C\n#include <stdio.h>\n\nint main(void) {\n    printf("Halo dari C!\\n");\n    for (int i = 1; i <= 5; i++) printf("%d -> %d\\n", i, i*i);\n    return 0;\n}`,
+  'C++':`// C++\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Halo dari C++!" << endl;\n    for (int i = 1; i <= 5; i++) cout << i << " -> " << i*i << endl;\n}`,
+  'C#':`// C# (Mono)\nusing System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Halo dari C#!");\n        for (int i = 1; i <= 5; i++) Console.WriteLine($"{i} -> {i*i}");\n    }\n}`,
+  PHP:`<?php\n// PHP\necho "Halo dari PHP!\\n";\nforeach (range(1,5) as $i) echo "$i kuadrat = " . ($i*$i) . "\\n";`,
+  Swift:`// Swift\nprint("Halo dari Swift!")\nfor i in 1...5 { print("\\(i) -> \\(i*i)") }`,
+  Lua:`-- Lua\nprint("Halo dari Lua!")\nfor i = 1, 5 do print(i .. " kuadrat = " .. i*i) end`,
+  Perl:`# Perl\nprint "Halo dari Perl!\\n";\nprint "$_ kuadrat = ", $_*$_, "\\n" for (1..5);`,
+  R:`# R\ncat("Halo dari R!\\n")\nfor (i in 1:5) cat(i, "kuadrat =", i*i, "\\n")`,
+  'Bash script':`# Bash\necho "Halo dari Bash!"\nfor i in 1 2 3 4 5; do echo "$i kuadrat = $((i*i))"; done`,
+  Scala:`// Scala\nobject Main extends App {\n  println("Halo dari Scala!")\n  (1 to 5).foreach(i => println(s"$i -> ${i*i}"))\n}`,
+  Julia:`# Julia\nprintln("Halo dari Julia!")\nfor i in 1:5\n    println("$i kuadrat = $(i*i)")\nend`,
+  Haskell:`-- Haskell\nmain :: IO ()\nmain = do\n  putStrLn "Halo dari Haskell!"\n  mapM_ (\\i -> putStrLn (show i ++ " -> " ++ show (i*i))) [1..5]`,
+  Elixir:`# Elixir\nIO.puts "Halo dari Elixir!"\nEnum.each(1..5, fn i -> IO.puts "#{i} -> #{i*i}" end)`,
+  SQL:`-- SQL (SQLite)\nSELECT 'Halo dari SQL!' AS pesan;\nWITH RECURSIVE c(x) AS (SELECT 1 UNION SELECT x+1 FROM c WHERE x<5)\nSELECT x, x*x AS kuadrat FROM c;`,
+  Pascal:`program Hello;\nbegin\n  writeln('Halo dari Pascal!');\nend.`,
+  Nim:`echo "Halo dari Nim!"\nfor i in 1..5: echo i, " -> ", i*i`,
+  Zig:`const std = @import("std");\npub fn main() void {\n    std.debug.print("Halo dari Zig!\\n", .{});\n}`,
+};
+
+const HTML_TPL = `<!doctype html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:system-ui;background:#0d1117;color:#e6edf3;display:grid;place-items:center;height:100vh;margin:0">
+  <div style="text-align:center">
+    <h1 style="margin:0;font-size:48px;background:linear-gradient(90deg,#58a6ff,#7ee787);-webkit-background-clip:text;color:transparent">Halo HTML!</h1>
+    <p style="color:#8b97a7">CSS-nya inline langsung di tag. Edit kiri, lihat hasil kanan.</p>
+    <button onclick="alert('JS jalan juga \\ud83d\\udc4b')" style="padding:10px 18px;border:0;border-radius:8px;background:#238636;color:#fff;cursor:pointer">Klik gue</button>
+  </div>
+</body>
+</html>`;
+
+let editor, compilerByLang = {}, current = null;
+const $ = s => document.querySelector(s);
+const langSel = $('#lang'), verEl = $('#ver'), outEl = $('#output'),
+      iframeEl = $('#preview'), editorTag = $('#editorTag'), outTag = $('#outTag');
+
+// ── Monaco worker (cross-origin via data: bootstrap) ─────────────────────────
+window.MonacoEnvironment = {
+  getWorkerUrl: () => `data:text/javascript;charset=utf-8,${encodeURIComponent(
+    `self.MonacoEnvironment={baseUrl:'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/'};importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/base/worker/workerMain.js');`
+  )}`
+};
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+
+Promise.all([
+  new Promise(res => require(['vs/editor/editor.main'], res)),
+  fetch(`${WANDBOX}/list.json`).then(r => r.json()).catch(() => [])
+]).then(([_, list]) => init(list));
+
+function init(list){
+  // pilih compiler default per bahasa: yang pertama & bukan build "head"
+  const firstAny = {};
+  for (const c of list){
+    if (!firstAny[c.language]) firstAny[c.language] = c;
+    if (!compilerByLang[c.language] && !/head/i.test(c.name)) compilerByLang[c.language] = c;
+  }
+  for (const L in firstAny) if (!compilerByLang[L]) compilerByLang[L] = firstAny[L];
+
+  editor = monaco.editor.create($('#editor'), {
+    value:'', language:'javascript', theme:'vs-dark', automaticLayout:true,
+    fontSize:13.5, minimap:{enabled:false}, scrollBeyondLastLine:false,
+    padding:{top:12}, tabSize:2, smoothScrolling:true,
+  });
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
+
+  buildLangList();
+  $('#loader').style.display = 'none';
+}
+
+function buildLangList(){
+  const langs = Object.keys(compilerByLang);
+  const ordered = [...PRI.filter(l => langs.includes(l)),
+                   ...langs.filter(l => !PRI.includes(l)).sort()];
+
+  let html = `<option value="__html__">🌐 HTML (live preview)</option>`;
+  html += `<optgroup label="Populer">`;
+  let inPri = true;
+  for (const l of ordered){
+    if (inPri && !PRI.includes(l)){ html += `</optgroup><optgroup label="Semua bahasa">`; inPri = false; }
+    html += `<option value="${escAttr(l)}">${escHtml(l)}</option>`;
+  }
+  html += `</optgroup>`;
+  langSel.innerHTML = html;
+
+  const shared = readHash();
+  if (shared && (shared.lang === '__html__' || langs.includes(shared.lang))){
+    langSel.value = shared.lang; selectLang(shared.code);
+  } else {
+    langSel.value = langs.includes('JavaScript') ? 'JavaScript' : (langs[0] || '__html__');
+    selectLang();
+  }
+  langSel.addEventListener('change', () => selectLang());
+}
+
+function selectLang(forceCode){
+  const l = langSel.value;
+  if (l === '__html__'){
+    current = { language:'__html__' };
+    verEl.textContent=''; editorTag.textContent='html';
+    monaco.editor.setModelLanguage(editor.getModel(), 'html');
+    editor.setValue(forceCode ?? HTML_TPL);
+    return;
+  }
+  const c = compilerByLang[l];
+  current = c;
+  verEl.textContent = c ? 'v'+(c.version || c.name.replace(/^[^0-9]*/,'')) : '';
+  const mlang = MONACO_LANG[l] || 'plaintext';
+  editorTag.textContent = mlang;
+  monaco.editor.setModelLanguage(editor.getModel(), mlang);
+  editor.setValue(forceCode ?? (T[l] || `# ${l}\n# Tulis code lo di sini, lalu Run ▶\n`));
+}
+
+// ── Run ──────────────────────────────────────────────────────────────────────
+async function run(){
+  const code = editor.getValue();
+  const runBtn = $('#runBtn');
+
+  if (current.language === '__html__'){ showPreview(code); return; }
+
+  showText();
+  outEl.innerHTML = `<span class="meta"><span class="spin"></span> Compile & run ${current.language} (${current.name})…</span>`;
+  runBtn.disabled = true;
+  const t0 = performance.now();
+
+  try {
+    const res = await fetch(`${WANDBOX}/compile.json`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ compiler: current.name, code, stdin: $('#stdin').value || '' })
+    });
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const d = await res.json();
+    const ms = Math.round(performance.now() - t0);
+
+    outEl.innerHTML = '';
+    const cErr = d.compiler_error || '';
+    const out  = d.program_output || '';
+    const pErr = d.program_error || '';
+
+    if (cErr) append('err', '[compile]\n' + cErr + '\n');
+    if (out)  append('', out);
+    if (pErr) append('err', pErr);
+    if (!cErr && !out && !pErr) append('placeholder', '(tidak ada output)');
+
+    const ok = d.status === '0';
+    append('meta', `\n${ok ? '✓' : '✗'} exit ${d.status ?? '?'}${d.signal ? ' (signal '+d.signal+')':''}  ·  ${ms}ms`);
+  } catch(e){
+    outEl.innerHTML = '';
+    append('err', 'Network error: ' + e.message + '\n(Wandbox API mungkin lagi down / kelebihan beban — coba lagi)');
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+function append(cls, txt){
+  const span = document.createElement('span');
+  if (cls) span.className = cls;
+  span.textContent = txt;
+  outEl.appendChild(span);
+}
+function showText(){ iframeEl.style.display='none'; outEl.style.display='block'; outTag.textContent=''; }
+function showPreview(html){ outEl.style.display='none'; iframeEl.style.display='block'; iframeEl.srcdoc = html; outTag.textContent='live'; }
+
+// ── Share via URL hash ───────────────────────────────────────────────────────
+function readHash(){
+  try {
+    if (!location.hash.startsWith('#c=')) return null;
+    const raw = decodeURIComponent(location.hash.slice(3));
+    return JSON.parse(decodeURIComponent(escape(atob(raw))));
+  } catch { return null; }
+}
+$('#shareBtn').addEventListener('click', () => {
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ lang: langSel.value, code: editor.getValue() }))));
+  const url = `${location.origin}${location.pathname}#c=${encodeURIComponent(payload)}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const b = $('#shareBtn'); const o = b.textContent; b.textContent='✓ Copied!';
+    setTimeout(() => b.textContent = o, 1400);
+  });
+});
+
+// ── helpers + buttons ────────────────────────────────────────────────────────
+function escHtml(s){ return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+function escAttr(s){ return s.replace(/"/g,'&quot;'); }
+$('#runBtn').addEventListener('click', run);
+$('#resetBtn').addEventListener('click', () => selectLang());
+$('#stdinToggle').addEventListener('click', () => $('#stdinWrap').classList.toggle('show'));
+</script>
+</body>
+</html>

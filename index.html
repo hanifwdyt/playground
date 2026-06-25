@@ -172,20 +172,63 @@ const $ = s => document.querySelector(s);
 const langSel = $('#lang'), verEl = $('#ver'), outEl = $('#output'),
       iframeEl = $('#preview'), editorTag = $('#editorTag'), outTag = $('#outTag');
 
-// ── Monaco worker (cross-origin via data: bootstrap) ─────────────────────────
-window.MonacoEnvironment = {
-  getWorkerUrl: () => `data:text/javascript;charset=utf-8,${encodeURIComponent(
-    `self.MonacoEnvironment={baseUrl:'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/'};importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/base/worker/workerMain.js');`
-  )}`
-};
-require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+// ── Load Monaco robust: Blob worker (data: diblokir Chrome) + timeout + fallback
+const MONACO_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/';
+let usingMonaco = false;
+
+function loadMonaco(){
+  return new Promise((resolve, reject) => {
+    if (typeof require === 'undefined') return reject(new Error('AMD loader ga keload (CDN diblokir/offline?)'));
+    window.MonacoEnvironment = {
+      getWorkerUrl(){
+        const code = `self.MonacoEnvironment={baseUrl:'${MONACO_BASE}'};importScripts('${MONACO_BASE}vs/base/worker/workerMain.js');`;
+        return URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      }
+    };
+    require.config({ paths: { vs: MONACO_BASE + 'vs' } });
+    const to = setTimeout(() => reject(new Error('Monaco timeout 10s')), 10000);
+    require(['vs/editor/editor.main'],
+      () => { clearTimeout(to); resolve(true); },
+      (err) => { clearTimeout(to); reject(err || new Error('Monaco module error')); });
+  });
+}
 
 Promise.all([
-  new Promise(res => require(['vs/editor/editor.main'], res)),
+  loadMonaco().then(() => { usingMonaco = true; }).catch(e => { console.warn('[playground] Monaco gagal, fallback textarea:', e); usingMonaco = false; }),
   fetch(`${WANDBOX}/list.json`).then(r => r.json()).catch(() => [])
-]).then(([_, list]) => init(list));
+]).then(([_, list]) => {
+  try { init(list); }
+  catch (e) { console.error('[playground] init error:', e); usingMonaco = false; try { init(list); } catch(_){} $('#loader').style.display = 'none'; }
+});
 
+// safety net: kalau apa pun nyangkut > 12s, paksa lepas loader + fallback
+setTimeout(() => {
+  if ($('#loader').style.display !== 'none'){
+    console.warn('[playground] watchdog: paksa lepas loader');
+    usingMonaco = false;
+    try { init(window.__rt || []); } catch(e){ console.error(e); }
+    $('#loader').style.display = 'none';
+  }
+}, 12000);
+
+function makeTextareaEditor(){
+  const ta = document.createElement('textarea');
+  ta.spellcheck = false; ta.autocapitalize = 'off'; ta.autocomplete = 'off';
+  ta.style.cssText = 'width:100%;height:100%;border:0;resize:none;background:#0d1117;color:#e6edf3;font-family:var(--mono);font-size:13.5px;line-height:1.55;padding:12px 14px;outline:none';
+  ta.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter'){ e.preventDefault(); run(); }
+    else if (e.key === 'Tab'){ e.preventDefault(); const s=ta.selectionStart, en=ta.selectionEnd; ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(en); ta.selectionStart=ta.selectionEnd=s+2; }
+  });
+  const host = $('#editor'); host.innerHTML = ''; host.appendChild(ta);
+  return { getValue: () => ta.value, setValue: v => { ta.value = v; }, _fallback: true };
+}
+
+function setHL(mlang){ if (usingMonaco && editor && editor.getModel) { try { monaco.editor.setModelLanguage(editor.getModel(), mlang); } catch(_){} } }
+
+let inited = false;
 function init(list){
+  if (inited) return;
+  window.__rt = list;
   // pilih compiler default per bahasa: yang pertama & bukan build "head"
   const firstAny = {};
   for (const c of list){
@@ -194,14 +237,20 @@ function init(list){
   }
   for (const L in firstAny) if (!compilerByLang[L]) compilerByLang[L] = firstAny[L];
 
-  editor = monaco.editor.create($('#editor'), {
-    value:'', language:'javascript', theme:'vs-dark', automaticLayout:true,
-    fontSize:13.5, minimap:{enabled:false}, scrollBeyondLastLine:false,
-    padding:{top:12}, tabSize:2, smoothScrolling:true,
-  });
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
+  if (usingMonaco && typeof monaco !== 'undefined'){
+    editor = monaco.editor.create($('#editor'), {
+      value:'', language:'javascript', theme:'vs-dark', automaticLayout:true,
+      fontSize:13.5, minimap:{enabled:false}, scrollBeyondLastLine:false,
+      padding:{top:12}, tabSize:2, smoothScrolling:true,
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
+  } else {
+    usingMonaco = false;
+    editor = makeTextareaEditor();
+  }
 
   buildLangList();
+  inited = true;
   $('#loader').style.display = 'none';
 }
 
@@ -235,7 +284,7 @@ function selectLang(forceCode){
   if (l === '__html__'){
     current = { language:'__html__' };
     verEl.textContent=''; editorTag.textContent='html';
-    monaco.editor.setModelLanguage(editor.getModel(), 'html');
+    setHL('html');
     editor.setValue(forceCode ?? HTML_TPL);
     return;
   }
@@ -244,7 +293,7 @@ function selectLang(forceCode){
   verEl.textContent = c ? 'v'+(c.version || c.name.replace(/^[^0-9]*/,'')) : '';
   const mlang = MONACO_LANG[l] || 'plaintext';
   editorTag.textContent = mlang;
-  monaco.editor.setModelLanguage(editor.getModel(), mlang);
+  setHL(mlang);
   editor.setValue(forceCode ?? (T[l] || `# ${l}\n# Tulis code lo di sini, lalu Run ▶\n`));
 }
 

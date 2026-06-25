@@ -1,3 +1,4 @@
 [
-  { "date": "2026-06-25", "macrostructure": "Workbench (tool shell)", "theme": "custom", "theme_axes": "dark / mono-display / acid-lime", "vibe": "late-night terminal acid-lime mono", "enrichment": "none", "brief": "playground.hanif.app · code runner UI redesign · atmospheric" }
+  { "date": "2026-06-25", "macrostructure": "Workbench (tool shell)", "theme": "custom", "theme_axes": "light cream + dark box-green / display-heavy / red-27", "vibe": "Monopoly board · cream + black rules + red + property strip · dark/light", "enrichment": "none", "brief": "playground.hanif.app · code runner UI · Monopoly theme + dark/light toggle" },
+  { "date": "2026-06-25", "macrostructure": "Workbench (tool shell)", "theme": "custom", "theme_axes": "dark / mono-display / acid-lime", "vibe": "late-night terminal acid-lime mono (REPLACED)", "enrichment": "none", "brief": "playground.hanif.app · atmospheric (diganti, dianggap norak)" }
 ]

@@ -145,7 +145,7 @@ const T = {
   Perl:`# Perl\nprint "Halo dari Perl!\\n";\nprint "$_ kuadrat = ", $_*$_, "\\n" for (1..5);`,
   R:`# R\ncat("Halo dari R!\\n")\nfor (i in 1:5) cat(i, "kuadrat =", i*i, "\\n")`,
   'Bash script':`# Bash\necho "Halo dari Bash!"\nfor i in 1 2 3 4 5; do echo "$i kuadrat = $((i*i))"; done`,
-  Scala:`// Scala\nobject Main extends App {\n  println("Halo dari Scala!")\n  (1 to 5).foreach(i => println(s"$i -> ${i*i}"))\n}`,
+  Scala:`// Scala\nobject Main extends App {\n  println("Halo dari Scala!")\n  (1 to 5).foreach(i => println(s"$i -> \${i*i}"))\n}`,
   Julia:`# Julia\nprintln("Halo dari Julia!")\nfor i in 1:5\n    println("$i kuadrat = $(i*i)")\nend`,
   Haskell:`-- Haskell\nmain :: IO ()\nmain = do\n  putStrLn "Halo dari Haskell!"\n  mapM_ (\\i -> putStrLn (show i ++ " -> " ++ show (i*i))) [1..5]`,
   Elixir:`# Elixir\nIO.puts "Halo dari Elixir!"\nEnum.each(1..5, fn i -> IO.puts "#{i} -> #{i*i}" end)`,

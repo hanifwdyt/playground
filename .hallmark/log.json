@@ -1,4 +1,11 @@
 [
-  { "date": "2026-06-25", "macrostructure": "Workbench (tool shell)", "theme": "custom", "theme_axes": "light cream + dark box-green / display-heavy / red-27", "vibe": "Monopoly board · cream + black rules + red + property strip · dark/light", "enrichment": "none", "brief": "playground.hanif.app · code runner UI · Monopoly theme + dark/light toggle" },
-  { "date": "2026-06-25", "macrostructure": "Workbench (tool shell)", "theme": "custom", "theme_axes": "dark / mono-display / acid-lime", "vibe": "late-night terminal acid-lime mono (REPLACED)", "enrichment": "none", "brief": "playground.hanif.app · atmospheric (diganti, dianggap norak)" }
+  {
+    "date": "2026-06-25",
+    "macrostructure": "Workbench (tool shell)",
+    "theme": "custom",
+    "theme_axes": "neutral light + neutral dark / system-sans / calm-blue-256",
+    "vibe": "Minimal Mono \u2014 grayscale + 1 blue accent, symmetric 50/50, Inter",
+    "enrichment": "none",
+    "brief": "playground.hanif.app \u00b7 code runner \u00b7 Minimal Mono (clean/symmetric) + dark/light. Versi FINAL setelah user nolak github-dark, atmospheric, Monopoly"
+  }
 ]

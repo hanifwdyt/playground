@@ -1,20 +1,17 @@
-/* Hallmark tokens · playground.hanif.app · theme: custom "Monopoly board" (light) + box-green (dark) */
+/* Hallmark tokens · playground.hanif.app · theme: custom "Minimal Mono" (neutral + calm blue) · light + dark */
 :root{
-  --paper-0:oklch(95.5% .018 92);  --paper-1:oklch(97.6% .012 95);  --paper-2:oklch(99.2% .006 95);
-  --ink:oklch(24% .015 70);        --ink-dim:oklch(44% .02 60);     --ink-faint:oklch(57% .02 70);
-  --rule:oklch(24% .015 70);       --line-soft:oklch(84% .012 92);
-  --accent:oklch(57% .21 27);      --on-accent:oklch(99% 0 0);      --shadow:oklch(24% .015 70);
-  --editor-card:var(--paper-2);    --focus:oklch(57% .21 27);
-  --p-brown:#955436; --p-sky:#aae0fa; --p-pink:#d93a96; --p-orange:#f7941d;
-  --p-red:#ed1b24; --p-yellow:#fcdb1f; --p-green:#1fb25a; --p-blue:#0072bb;
-  --font-display:'Archivo Black',system-ui,sans-serif;
-  --font-ui:'Libre Franklin',system-ui,sans-serif;
+  --paper-0:oklch(98.4% 0 0);  --paper-1:oklch(100% 0 0);  --paper-2:oklch(97% 0 0);  --paper-3:oklch(94.5% 0 0);
+  --ink:oklch(25% 0 0);        --ink-dim:oklch(48% 0 0);   --ink-faint:oklch(64% 0 0);
+  --line:oklch(92.5% 0 0);     --line-2:oklch(87% 0 0);
+  --accent:oklch(54% .18 256); --accent-hover:oklch(48% .18 256);  --on-accent:oklch(100% 0 0);
+  --ok:oklch(53% .14 156);     --danger:oklch(56% .19 25);  --focus:oklch(54% .18 256);
+  --font-ui:'Inter',system-ui,sans-serif;
   --font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
 }
 [data-theme="dark"]{
-  --paper-0:oklch(24% .03 162);    --paper-1:oklch(28% .03 162);    --paper-2:oklch(31% .032 162);
-  --ink:oklch(94% .015 95);        --ink-dim:oklch(74% .018 95);    --ink-faint:oklch(62% .02 120);
-  --rule:oklch(82% .03 95);        --line-soft:oklch(40% .03 162);
-  --accent:oklch(64% .2 28);       --on-accent:oklch(99% 0 0);      --shadow:oklch(13% .02 162);
-  --editor-card:oklch(26% .03 162);--focus:oklch(72% .18 28);
+  --paper-0:oklch(20.5% .004 265);  --paper-1:oklch(24% .005 265);  --paper-2:oklch(28% .006 265);  --paper-3:oklch(32% .006 265);
+  --ink:oklch(93% 0 0);             --ink-dim:oklch(70% 0 0);       --ink-faint:oklch(55% 0 0);
+  --line:oklch(31% .005 265);       --line-2:oklch(40% .006 265);
+  --accent:oklch(66% .15 256);      --accent-hover:oklch(72% .15 256);  --on-accent:oklch(20% .01 265);
+  --ok:oklch(72% .14 156);          --danger:oklch(72% .16 25);     --focus:oklch(66% .15 256);
 }

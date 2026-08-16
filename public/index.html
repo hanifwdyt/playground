@@ -131,6 +131,43 @@
 
   @media (prefers-reduced-motion:reduce){ .spin{animation-duration:1.3s} *{transition-duration:.01ms!important} }
 
+  /* ── ask / diskusi panel ── */
+  .ask-scrim{position:fixed;inset:0;background:oklch(0% 0 0/.28);opacity:0;pointer-events:none;
+    transition:opacity var(--dur) var(--ease-out);z-index:40}
+  .ask-scrim.show{opacity:1;pointer-events:auto}
+  .ask-panel{position:fixed;top:0;right:0;bottom:0;width:min(400px,92vw);background:var(--paper-1);
+    border-left:1px solid var(--line);display:flex;flex-direction:column;z-index:41;
+    transform:translateX(100%);transition:transform .22s var(--ease-out);
+    box-shadow:-10px 0 28px oklch(0% 0 0/.07)}
+  .ask-panel.open{transform:translateX(0)}
+  .ask-head{display:flex;align-items:center;justify-content:space-between;height:52px;flex:0 0 auto;
+    padding:0 var(--space-2) 0 var(--space-4);border-bottom:1px solid var(--line);background:var(--paper-1)}
+  .ask-head .title{font-weight:600;font-size:14.5px;color:var(--ink)}
+  .ask-body{flex:1;overflow-y:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:12px}
+  .ask-empty{margin:auto;text-align:center;color:var(--ink-faint);font-size:var(--text-sm);
+    max-width:260px;line-height:1.6}
+  .ask-msg{max-width:88%;font-size:var(--text-md);line-height:1.55;color:var(--ink)}
+  .ask-msg p{margin:0 0 8px}
+  .ask-msg p:last-child{margin-bottom:0}
+  .ask-msg.user{align-self:flex-end;background:var(--paper-3);border-radius:12px 12px 3px 12px;padding:8px 12px}
+  .ask-msg.bot{align-self:flex-start}
+  .ask-msg.err{color:var(--danger)}
+  .ask-msg .ask-code{background:var(--editor-card);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:10px 12px;overflow-x:auto;margin:6px 0}
+  .ask-msg .ask-code code{font-family:var(--font-mono);font-size:12.5px;color:var(--ink);white-space:pre}
+  .ask-msg code{font-family:var(--font-mono);font-size:12px;background:var(--paper-2);padding:1px 5px;border-radius:4px}
+  .ask-thinking{align-self:flex-start;display:flex;align-items:center;gap:8px;color:var(--ink-faint);
+    font-family:var(--font-mono);font-size:var(--text-xs)}
+  .ask-form{flex:0 0 auto;display:flex;align-items:flex-end;gap:8px;padding:var(--space-3) var(--space-4);
+    border-top:1px solid var(--line);background:var(--paper-1)}
+  #askInput{flex:1;resize:none;max-height:120px;min-height:36px;background:var(--paper-0);color:var(--ink);
+    border:1px solid var(--line-2);border-radius:var(--radius-sm);padding:8px 11px;font-family:var(--font-ui);
+    font-size:var(--text-base);line-height:1.4}
+  #askInput:focus{outline:none;border-color:var(--focus)}
+  #askInput::placeholder{color:var(--ink-faint)}
+  #askInput:disabled{opacity:.5}
+  #askSend{font-size:12px;flex:0 0 auto}
+
   @media (max-width:760px){
     main{flex-direction:column}
     .pane{width:100%}
@@ -138,6 +175,7 @@
     #outPane{flex:0 0 44%}
     .hide-sm{display:none}
     select#lang{max-width:150px}
+    .ask-panel{width:100%}
   }
 </style>
 </head>
@@ -164,6 +202,7 @@
     <button class="ghost" id="stdinToggle" title="Toggle input (stdin)">stdin</button>
     <button class="ghost hide-sm" id="resetBtn" title="Reset ke contoh">reset</button>
     <button class="ghost hide-sm" id="shareBtn" title="Copy link berisi code">share</button>
+    <button class="ghost" id="askBtn" title="Diskusi soal kode lo — bukan minta jawaban jadi">Diskusi</button>
     <button class="run" id="runBtn">Run <kbd class="hide-sm">⌘↵</kbd></button>
   </header>
 
@@ -183,6 +222,21 @@
       <iframe id="preview" sandbox="allow-scripts allow-modals allow-forms allow-popups" style="display:none"></iframe>
     </section>
   </main>
+
+  <div class="ask-scrim" id="askScrim"></div>
+  <aside class="ask-panel" id="askPanel" aria-hidden="true">
+    <div class="ask-head">
+      <span class="title">Diskusi</span>
+      <button class="ghost icon-btn" id="askClose" aria-label="Tutup diskusi">✕</button>
+    </div>
+    <div class="ask-body" id="askBody">
+      <div class="ask-empty" id="askEmpty">Cerita stuck di mana, atau tanya konsepnya. Kode di editor lo kebaca otomatis — tapi jangan berharap gue nulisin jawabannya, ntar lo ga belajar apa-apa.</div>
+    </div>
+    <form class="ask-form" id="askForm">
+      <textarea id="askInput" rows="1" placeholder="Tanya konsep atau cerita stuck di mana…"></textarea>
+      <button class="ghost icon-btn" id="askSend" type="submit" title="Kirim">▶</button>
+    </form>
+  </aside>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 <script>
@@ -242,7 +296,7 @@ const HTML_TPL = `<!doctype html>
 </body>
 </html>`;
 
-let editor, compilerByLang = {}, current = null;
+let editor, compilerByLang = {}, current = null, hasRun = false;
 const $ = s => document.querySelector(s);
 const langSel = $('#lang'), verEl = $('#ver'), outEl = $('#output'),
       iframeEl = $('#preview'), editorTag = $('#editorTag'), outTag = $('#outTag');
@@ -453,6 +507,7 @@ async function run(){
   if (current.language === '__html__'){ showPreview(code); return; }
 
   showText();
+  hasRun = true;
   outEl.innerHTML = `<span class="meta"><span class="spin"></span> Compile & run ${current.language} (${current.name})…</span>`;
   runBtn.disabled = true;
   const t0 = performance.now();
@@ -529,6 +584,113 @@ function escAttr(s){ return s.replace(/"/g,'&quot;'); }
 $('#runBtn').addEventListener('click', run);
 $('#resetBtn').addEventListener('click', () => selectLang());
 $('#stdinToggle').addEventListener('click', () => $('#stdinWrap').classList.toggle('show'));
+
+// ── Diskusi (AI mentor — bantu mikir, bukan kasih jawaban) ───────────────────
+const askPanel = $('#askPanel'), askScrim = $('#askScrim'), askBody = $('#askBody'),
+      askEmpty = $('#askEmpty'), askForm = $('#askForm'), askInput = $('#askInput'), askSend = $('#askSend');
+let askHistory = [], askBusy = false, aiStatusChecked = false, aiOn = null;
+
+function currentLangLabel(){ return current ? (current.language === '__html__' ? 'HTML' : (current.language || '')) : ''; }
+
+function checkAiStatus(){
+  aiStatusChecked = true;
+  fetch('/api/ai/status').then(r => r.json()).then(d => {
+    aiOn = !!d.enabled;
+    if (!aiOn){
+      askEmpty.textContent = 'Diskusi belum aktif di server ini.';
+      askInput.disabled = true; askSend.disabled = true;
+      askInput.placeholder = 'Diskusi belum aktif';
+    }
+  }).catch(() => { aiOn = false; });
+}
+
+function openAsk(){
+  askPanel.classList.add('open'); askScrim.classList.add('show');
+  askPanel.setAttribute('aria-hidden', 'false');
+  if (!aiStatusChecked) checkAiStatus();
+  setTimeout(() => askInput.focus(), 60);
+}
+function closeAsk(){
+  askPanel.classList.remove('open'); askScrim.classList.remove('show');
+  askPanel.setAttribute('aria-hidden', 'true');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && askPanel.classList.contains('open')) closeAsk(); });
+$('#askBtn').addEventListener('click', openAsk);
+$('#askClose').addEventListener('click', closeAsk);
+askScrim.addEventListener('click', closeAsk);
+
+function appendAskMsg(cls, html){
+  const div = document.createElement('div');
+  div.className = 'ask-msg ' + cls;
+  div.innerHTML = html;
+  askBody.appendChild(div);
+  askBody.scrollTop = askBody.scrollHeight;
+  return div;
+}
+function appendThinking(){
+  const div = document.createElement('div');
+  div.className = 'ask-thinking';
+  div.innerHTML = '<span class="spin"></span> mikir…';
+  askBody.appendChild(div);
+  askBody.scrollTop = askBody.scrollHeight;
+  return div;
+}
+function renderMd(text){
+  const segs = String(text).split(/```([\s\S]*?)```/g);
+  let html = '';
+  segs.forEach((seg, i) => {
+    if (i % 2 === 1){
+      let code = seg;
+      const nl = code.indexOf('\n');
+      if (nl !== -1 && /^[\w+#.-]{0,20}$/.test(code.slice(0, nl).trim())) code = code.slice(nl + 1);
+      html += `<pre class="ask-code"><code>${escHtml(code.replace(/^\n+|\n+$/g, ''))}</code></pre>`;
+    } else if (seg.trim()){
+      const p = escHtml(seg.trim()).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+      html += `<p>${p}</p>`;
+    }
+  });
+  return html || `<p>${escHtml(text)}</p>`;
+}
+function autoResizeAsk(){ askInput.style.height = 'auto'; askInput.style.height = Math.min(askInput.scrollHeight, 120) + 'px'; }
+askInput.addEventListener('input', autoResizeAsk);
+askInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); askForm.requestSubmit(); }
+});
+
+async function sendAsk(){
+  const text = askInput.value.trim();
+  if (!text || askBusy || aiOn === false) return;
+  if (askEmpty.isConnected) askEmpty.remove();
+
+  appendAskMsg('user', `<p>${escHtml(text).replace(/\n/g, '<br>')}</p>`);
+  askHistory.push({ role: 'user', content: text });
+  askInput.value = ''; autoResizeAsk();
+  askBusy = true; askSend.disabled = true;
+  const thinking = appendThinking();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: currentLangLabel(),
+        code: editor.getValue(),
+        output: hasRun ? outEl.textContent : '',
+        messages: askHistory,
+      }),
+    });
+    const d = await res.json();
+    thinking.remove();
+    if (!res.ok) throw new Error(d.error || 'HTTP ' + res.status);
+    appendAskMsg('bot', renderMd(d.message));
+    askHistory.push({ role: 'assistant', content: d.message });
+  } catch (e){
+    thinking.remove();
+    appendAskMsg('bot err', `<p>Gagal connect: ${escHtml(e.message)}</p>`);
+  } finally {
+    askBusy = false; askSend.disabled = false; askInput.focus();
+  }
+}
+askForm.addEventListener('submit', e => { e.preventDefault(); sendAsk(); });
 </script>
 </body>
 </html>

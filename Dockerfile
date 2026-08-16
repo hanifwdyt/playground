@@ -1,5 +1,10 @@
-# Pure static single-file app — no build step needed.
-FROM nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY index.html /usr/share/nginx/html/index.html
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+COPY server ./server
+COPY public ./public
 EXPOSE 80
+ENV PORT=80
+CMD ["node", "server/index.js"]

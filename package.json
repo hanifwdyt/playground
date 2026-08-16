@@ -1,0 +1,17 @@
+{
+  "name": "playground-hanif-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "PORT=3000 node server/index.js"
+  },
+  "dependencies": {
+    "compression": "^1.7.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "openai": "^4.77.0"
+  }
+}

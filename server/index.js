@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat, aiEnabled } from "./mentor.js";
+import { createShare, getShare, shareEnabled } from "./share.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -37,6 +38,34 @@ app.post("/api/chat", limiter, async (req, res) => {
   } catch (err) {
     console.error("[chat]", err?.message ?? err);
     res.status(502).json({ error: "Gagal menghubungi AI. Coba lagi." });
+  }
+});
+
+app.post("/api/share", limiter, async (req, res) => {
+  if (!shareEnabled()) return res.status(503).json({ error: "Share belum aktif." });
+
+  const { language, code } = req.body ?? {};
+  if (typeof code !== "string" || !code.trim()) return res.status(400).json({ error: "code kosong." });
+  if (code.length > 200_000) return res.status(413).json({ error: "code kegedean buat di-share." });
+
+  try {
+    const id = await createShare({ language: String(language ?? "").slice(0, 40), code });
+    res.json({ id });
+  } catch (err) {
+    console.error("[share]", err?.message ?? err);
+    res.status(502).json({ error: "Gagal simpen share." });
+  }
+});
+
+app.get("/api/share/:id", async (req, res) => {
+  if (!/^[A-Za-z0-9]{4,16}$/.test(req.params.id)) return res.status(404).json({ error: "ga ketemu." });
+  try {
+    const data = await getShare(req.params.id);
+    if (!data) return res.status(404).json({ error: "ga ketemu." });
+    res.json(data);
+  } catch (err) {
+    console.error("[share]", err?.message ?? err);
+    res.status(502).json({ error: "Gagal ambil share." });
   }
 });
 

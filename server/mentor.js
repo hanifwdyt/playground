@@ -81,7 +81,10 @@ export async function chat({ language, code, output, messages }) {
   const res = await llm.chat.completions.create({
     model,
     temperature: 0.7,
-    max_tokens: 350,
+    // deepseek-v4-flash is a reasoning model — reasoning_content eats into max_tokens
+    // before the final `content` is written, so this needs real headroom or long
+    // system-prompt reasoning eats the whole budget and content comes back empty.
+    max_tokens: 1500,
     messages: [
       { role: "system", content: buildSystem({ language, code, output }) },
       ...messages.slice(-12).map((m) => ({
@@ -91,7 +94,8 @@ export async function chat({ language, code, output, messages }) {
     ],
   });
 
-  return {
-    message: res.choices?.[0]?.message?.content?.trim() || "Waduh, lagi ga bisa mikir jernih. Coba lagi?",
-  };
+  const content = res.choices?.[0]?.message?.content?.trim();
+  if (!content) console.error("[mentor] empty content, raw response:", JSON.stringify(res).slice(0, 2000));
+
+  return { message: content || "Waduh, lagi ga bisa mikir jernih. Coba lagi?" };
 }

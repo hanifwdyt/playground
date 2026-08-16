@@ -140,6 +140,9 @@
     transform:translateX(100%);transition:transform .22s var(--ease-out);
     box-shadow:-10px 0 28px oklch(0% 0 0/.07)}
   .ask-panel.open{transform:translateX(0)}
+  .ask-resize{position:absolute;left:-4px;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:2;
+    touch-action:none}
+  .ask-resize:hover,.ask-resize.active{background:var(--focus);opacity:.35}
   .ask-head{display:flex;align-items:center;justify-content:space-between;height:52px;flex:0 0 auto;
     padding:0 var(--space-2) 0 var(--space-4);border-bottom:1px solid var(--line);background:var(--paper-1)}
   .ask-head .title{font-weight:600;font-size:14.5px;color:var(--ink)}
@@ -153,9 +156,12 @@
   .ask-msg.bot{align-self:flex-start}
   .ask-msg.err{color:var(--danger)}
   .ask-msg .ask-code{background:var(--editor-card);border:1px solid var(--line);border-radius:var(--radius-sm);
-    padding:10px 12px;overflow-x:auto;margin:6px 0}
-  .ask-msg .ask-code code{font-family:var(--font-mono);font-size:12.5px;color:var(--ink);white-space:pre}
-  .ask-msg code{font-family:var(--font-mono);font-size:12px;background:var(--paper-2);padding:1px 5px;border-radius:4px}
+    padding:10px 12px;overflow-x:auto;margin:6px 0;max-width:100%}
+  .ask-msg .ask-code code{font-family:var(--font-mono);font-size:12.5px;color:var(--ink);
+    white-space:pre-wrap;overflow-wrap:anywhere}
+  .ask-msg code{font-family:var(--font-mono);font-size:12px;background:var(--paper-2);padding:1px 5px;
+    border-radius:4px;overflow-wrap:anywhere}
+  .ask-msg p{overflow-wrap:anywhere}
   .ask-thinking{align-self:flex-start;display:flex;align-items:center;gap:8px;color:var(--ink-faint);
     font-family:var(--font-mono);font-size:var(--text-xs)}
   .ask-form{flex:0 0 auto;display:flex;align-items:flex-end;gap:8px;padding:var(--space-3) var(--space-4);
@@ -175,7 +181,8 @@
     #outPane{flex:0 0 44%}
     .hide-sm{display:none}
     select#lang{max-width:150px}
-    .ask-panel{width:100%}
+    .ask-panel{width:100%!important}
+    .ask-resize{display:none}
   }
 </style>
 </head>
@@ -225,6 +232,7 @@
 
   <div class="ask-scrim" id="askScrim"></div>
   <aside class="ask-panel" id="askPanel" aria-hidden="true">
+    <div class="ask-resize" id="askResize" title="Tarik buat resize"></div>
     <div class="ask-head">
       <span class="title">Diskusi</span>
       <button class="ghost icon-btn" id="askClose" aria-label="Tutup diskusi">✕</button>
@@ -691,6 +699,34 @@ async function sendAsk(){
   }
 }
 askForm.addEventListener('submit', e => { e.preventDefault(); sendAsk(); });
+
+// resize panel (drag left edge)
+const askResize = $('#askResize');
+let askResizing = false, askStartX = 0, askStartW = 0;
+askResize.addEventListener('pointerdown', e => {
+  askResizing = true; askStartX = e.clientX; askStartW = askPanel.getBoundingClientRect().width;
+  askResize.classList.add('active');
+  askResize.setPointerCapture(e.pointerId);
+});
+askResize.addEventListener('pointermove', e => {
+  if (!askResizing) return;
+  const w = Math.min(Math.max(askStartW + (askStartX - e.clientX), 320), Math.min(window.innerWidth * 0.9, 900));
+  askPanel.style.width = w + 'px';
+});
+function endAskResize(){
+  if (!askResizing) return;
+  askResizing = false;
+  askResize.classList.remove('active');
+  try { localStorage.setItem('pg-ask-width', String(Math.round(askPanel.getBoundingClientRect().width))); } catch(_){}
+}
+askResize.addEventListener('pointerup', endAskResize);
+askResize.addEventListener('pointercancel', endAskResize);
+(function restoreAskWidth(){
+  try {
+    const saved = parseInt(localStorage.getItem('pg-ask-width'), 10);
+    if (saved > 200 && window.innerWidth > 760) askPanel.style.width = saved + 'px';
+  } catch(_){}
+})();
 </script>
 </body>
 </html>

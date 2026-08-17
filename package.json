@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "PORT=3000 node server/index.js"
+    "dev": "node scripts/build-tasks.mjs && PORT=3000 node server/index.js",
+    "build:tasks": "node scripts/build-tasks.mjs",
+    "verify:harness": "node scripts/verify-harness.mjs",
+    "verify:tasks": "node scripts/verify-tasks.mjs",
+    "verify:langs": "node scripts/verify-langs.mjs"
   },
   "dependencies": {
     "compression": "^1.7.5",

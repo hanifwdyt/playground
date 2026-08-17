@@ -185,8 +185,9 @@
     .ask-resize{display:none}
   }
 </style>
+<link rel="stylesheet" href="/grind.css" />
 </head>
-<body>
+<body data-mode="play">
   <div class="loading-screen" id="loader">
     <div class="boot"><span class="spin"></span> Playground</div>
     <div class="sub">loading editor &amp; runtimes…</div>
@@ -197,23 +198,34 @@
       <span class="token"></span>
       <span class="wordmark">Playground</span>
     </div>
+    <div class="mode-switch" id="modeSwitch">
+      <button class="mode-btn" data-mode="play" aria-pressed="true"><span class="lbl-full">Playground</span><span class="lbl-short">Play</span></button>
+      <button class="mode-btn" data-mode="grind" aria-pressed="false"><span class="lbl-full">Grinding</span><span class="lbl-short">Grind</span></button>
+    </div>
     <span class="divider hide-sm" aria-hidden="true"></span>
-    <div class="runtime">
+    <div class="runtime play-only">
       <span class="sel-wrap"><select id="lang" aria-label="Pilih bahasa"></select></span>
       <span class="ver" id="ver"></span>
     </div>
+    <button class="ghost grind-only" id="taskBtn" title="Pilih task"></button>
+    <span class="sel-wrap grind-only"><select id="grindLang" aria-label="Bahasa buat ngerjain task"></select></span>
 
     <div class="spacer"></div>
 
     <button class="ghost icon-btn" id="themeBtn" title="Ganti tema gelap/terang" aria-label="Ganti tema">☾</button>
-    <button class="ghost" id="stdinToggle" title="Toggle input (stdin)">stdin</button>
-    <button class="ghost hide-sm" id="resetBtn" title="Reset ke contoh">reset</button>
-    <button class="ghost hide-sm" id="shareBtn" title="Copy link berisi code">share</button>
+    <button class="ghost play-only" id="stdinToggle" title="Toggle input (stdin)">stdin</button>
+    <button class="ghost hide-sm play-only" id="resetBtn" title="Reset ke contoh">reset</button>
+    <button class="ghost hide-sm play-only" id="shareBtn" title="Copy link berisi code">share</button>
     <button class="ghost" id="askBtn" title="Diskusi soal kode lo — bukan minta jawaban jadi">Diskusi</button>
-    <button class="run" id="runBtn">Run <kbd class="hide-sm">⌘↵</kbd></button>
+    <button class="run" id="runBtn"><span id="runLabel">Run</span> <kbd class="hide-sm">⌘↵</kbd></button>
   </header>
 
   <main>
+    <section class="pane grind-only" id="taskPane">
+      <div class="pane-head">Soal <span class="tag" id="taskProgressTag"></span></div>
+      <div class="task-body" id="taskBody"></div>
+    </section>
+
     <section class="pane" id="editorPane">
       <div class="pane-head">Editor <span class="tag" id="editorTag"></span></div>
       <div id="editor"></div>
@@ -221,14 +233,45 @@
         <div class="stdin-label">stdin</div>
         <textarea id="stdin" placeholder="standard input — dibaca program lo…"></textarea>
       </div>
+      <div class="result-pane grind-only" id="resultPane">
+        <div class="result-resize" id="resultResize" title="Tarik buat resize"></div>
+        <div class="result-head">
+          <span class="rh-title">Hasil</span>
+          <span class="rh-summary" id="resultSummary"></span>
+          <span class="spacer"></span>
+          <span class="save-hint" id="saveHint"></span>
+          <button class="ghost icon-btn" id="resetCodeBtn" title="Balikin ke kode awal">↺</button>
+          <button class="ghost icon-btn" id="resultToggle" title="Sembunyikan hasil">▾</button>
+        </div>
+        <div class="result-body" id="resultBody"></div>
+      </div>
     </section>
 
-    <section class="pane" id="outPane">
+    <section class="pane play-only" id="outPane">
       <div class="pane-head">Output <span class="tag" id="outTag"></span></div>
       <pre id="output"><span class="placeholder">Tekan Run untuk eksekusi. Output, error &amp; exit code tampil di sini.</span></pre>
       <iframe id="preview" sandbox="allow-scripts allow-modals allow-forms allow-popups" style="display:none"></iframe>
     </section>
   </main>
+
+  <div class="tb-scrim" id="tbScrim"></div>
+  <div class="tb" id="taskBrowser" role="dialog" aria-modal="true" aria-label="Daftar task" aria-hidden="true">
+    <div class="tb-head">
+      <span class="tb-title">Grinding</span>
+      <span class="tb-progress" id="tbProgress"></span>
+      <span class="spacer"></span>
+      <button class="ghost icon-btn" id="tbClose" aria-label="Tutup">✕</button>
+    </div>
+    <div class="tb-tabs" id="tbTabs" role="tablist"></div>
+    <div class="tb-list" id="tbList"></div>
+    <div class="tb-foot">
+      <span>40 task · progres disimpan di browser ini aja</span>
+      <span class="spacer"></span>
+      <button class="ghost" id="tbReset">reset progres</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <div class="ask-scrim" id="askScrim"></div>
   <aside class="ask-panel" id="askPanel" aria-hidden="true">
@@ -349,10 +392,15 @@ setTimeout(() => {
   }
 }, 12000);
 
+// pelanggan perubahan isi editor (dipakai auto-save grinding mode)
+const changeSubs = [];
+const emitChange = () => { for (const f of changeSubs) { try { f(); } catch(_){} } };
+
 function makeTextareaEditor(){
   const ta = document.createElement('textarea');
   ta.spellcheck = false; ta.autocapitalize = 'off'; ta.autocomplete = 'off';
   ta.style.cssText = 'width:100%;height:100%;border:0;resize:none;background:var(--editor-card);color:var(--ink);font-family:var(--font-mono);font-size:13.5px;line-height:1.6;padding:14px 16px;outline:none';
+  ta.addEventListener('input', emitChange);
   ta.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter'){ e.preventDefault(); run(); }
     else if (e.key === 'Tab'){ e.preventDefault(); const s=ta.selectionStart, en=ta.selectionEnd; ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(en); ta.selectionStart=ta.selectionEnd=s+2; }
@@ -455,6 +503,7 @@ function init(list, shared){
       cursorSmoothCaretAnimation:'on', renderLineHighlight:'all',
     });
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
+    editor.onDidChangeModelContent(emitChange);
   } else {
     usingMonaco = false;
     editor = makeTextareaEditor();
@@ -463,6 +512,24 @@ function init(list, shared){
   buildLangList(shared);
   inited = true;
   $('#loader').style.display = 'none';
+  exposeApi();
+}
+
+// ── API kecil buat grinding mode (public/grind.js) ───────────────────────────
+function exposeApi(){
+  window.PG = {
+    getValue: () => editor.getValue(),
+    setValue: v => editor.setValue(v),
+    setHL,
+    onChange: cb => changeSubs.push(cb),
+    currentLanguage: () => langSel.value,
+    compilerFor: l => compilerByLang[l] || null,
+    runWandbox,
+    setRunning: on => { $('#runBtn').disabled = !!on; },
+    relayout: () => { if (usingMonaco && editor && editor.layout) { try { editor.layout(); } catch(_){} } },
+    restorePlayground: (lang, code) => { if (lang) langSel.value = lang; selectLang(code); },
+  };
+  window.dispatchEvent(new Event('pg:ready'));
 }
 
 function buildLangList(shared){
@@ -508,7 +575,29 @@ function selectLang(forceCode){
 }
 
 // ── Run ──────────────────────────────────────────────────────────────────────
+async function runWandbox({ compiler, code, stdin }){
+  // batas waktu di sisi klien — biar UI nggak nggantung selamanya kalau
+  // Wandbox lagi ngadat
+  let signal;
+  try { signal = AbortSignal.timeout(60000); } catch(_){}
+  let res;
+  try {
+    res = await fetch(`${WANDBOX}/compile.json`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ compiler, code, stdin: stdin || '' }), signal
+    });
+  } catch(e){
+    if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) throw new Error('kelamaan nunggu (>60s), dibatalin');
+    throw e;
+  }
+  if (!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
 async function run(){
+  // di grinding mode, tombol yang sama jalanin test case
+  if (window.PGGrind && window.PGGrind.isGrinding()) return window.PGGrind.run();
+
   const code = editor.getValue();
   const runBtn = $('#runBtn');
 
@@ -521,12 +610,7 @@ async function run(){
   const t0 = performance.now();
 
   try {
-    const res = await fetch(`${WANDBOX}/compile.json`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ compiler: current.name, code, stdin: $('#stdin').value || '' })
-    });
-    if (!res.ok) throw new Error('HTTP '+res.status);
-    const d = await res.json();
+    const d = await runWandbox({ compiler: current.name, code, stdin: $('#stdin').value || '' });
     const ms = Math.round(performance.now() - t0);
 
     outEl.innerHTML = '';
@@ -704,12 +788,14 @@ async function sendAsk(){
   const thinking = appendThinking();
 
   try {
+    const grinding = !!(window.PGGrind && window.PGGrind.isGrinding());
     const res = await fetch('/api/chat', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        language: currentLangLabel(),
+        language: grinding ? $('#grindLang').value : currentLangLabel(),
         code: editor.getValue(),
-        output: hasRun ? outEl.textContent : '',
+        output: grinding ? ($('#resultSummary').textContent || '') : (hasRun ? outEl.textContent : ''),
+        task: grinding ? window.PGGrind.mentorTask() : null,
         messages: askHistory,
       }),
     });
@@ -755,5 +841,6 @@ askResize.addEventListener('pointercancel', endAskResize);
   } catch(_){}
 })();
 </script>
+<script type="module" src="/grind.js"></script>
 </body>
 </html>

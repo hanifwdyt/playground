@@ -1,2 +1,6 @@
 node_modules/
 .env
+
+# hasil build soal grinding (di-generate scripts/build-tasks.mjs)
+public/tasks/
+public/tasks-index.js

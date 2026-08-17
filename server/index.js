@@ -22,7 +22,7 @@ app.get("/api/ai/status", (_req, res) => res.json({ enabled: aiEnabled() }));
 app.post("/api/chat", limiter, async (req, res) => {
   if (!aiEnabled()) return res.status(503).json({ error: "Diskusi belum diaktifkan." });
 
-  const { language, code, output, messages } = req.body ?? {};
+  const { language, code, output, task, messages } = req.body ?? {};
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "pesan kosong." });
   }
@@ -32,6 +32,7 @@ app.post("/api/chat", limiter, async (req, res) => {
       language: language ?? "",
       code: code ?? "",
       output: output ?? "",
+      task: task && typeof task === "object" ? task : null,
       messages,
     });
     res.json(out);
@@ -78,7 +79,14 @@ app.use(
     },
   })
 );
-app.get("*", (_req, res) => res.sendFile(path.join(publicDir, "index.html")));
+// SPA fallback — tapi aset yang beneran nggak ada harus tetap 404, jangan
+// dibales index.html (bikin fetch JSON gagal dengan pesan yang menyesatkan).
+app.get("*", (req, res) => {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/tasks/") || /\.[a-z0-9]+$/i.test(req.path)) {
+    return res.status(404).json({ error: "ga ketemu." });
+  }
+  res.sendFile(path.join(publicDir, "index.html"));
+});
 
 app.listen(PORT, () => {
   console.log(`playground.hanif.app → http://localhost:${PORT}`);

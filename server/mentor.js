@@ -49,19 +49,33 @@ ATURAN YANG TIDAK BOLEH DILANGGAR:
 - Kalau pertanyaannya di luar topik ngoding sama sekali, jawab santai tapi arahin balik pelan-pelan.
 `;
 
-function buildSystem({ language, code, output }) {
+function buildSystem({ language, code, output, task }) {
   const lang = (language || "belum dipilih").slice(0, 40);
   const codeSnippet = String(code || "").slice(0, 4000);
   const outSnippet = String(output || "").slice(0, 1200);
+
+  // Di grinding mode dia lagi ngerjain soal bertipe LeetCode. Aturannya makin
+  // ketat: soal latihan yang dikasih jawaban itu ilang gunanya.
+  const taskBlock = task
+    ? [
+        ``,
+        `SITUASI: dia lagi ngerjain soal latihan (grinding mode), level ${String(task.level || "").slice(0, 20)}.`,
+        `Judul soal: ${String(task.title || "").slice(0, 120)}`,
+        `Fungsi yang harus dia tulis: ${String(task.fn || "").slice(0, 60)}`,
+        `Isi soalnya:\n${String(task.statement || "").slice(0, 1500)}`,
+        `Karena ini soal latihan, larangan kasih jawaban jadi berlaku DUA KALI LIPAT: jangan pernah nulis solusinya, jangan kasih pseudocode langkah-demi-langkah yang tinggal diterjemahin, dan jangan sebutin nama algoritma finalnya kalau dia belum nyebut duluan. Bantu dia lewat pertanyaan: "kalau inputnya cuma 2 elemen gimana?", "apa yang sebenernya perlu kamu inget dari elemen sebelumnya?".`,
+      ].join("\n")
+    : "";
 
   return [
     `Kamu teman ngobrol di code playground online. Orang di depan kamu lagi nulis & nyoba-nyoba kode sendiri buat belajar.`,
     ``,
     `PERAN KAMU: teman diskusi, BUKAN pemberi jawaban. Contoh: kalau dia nanya "gimana cara loop di ${lang}?", jangan jelasin pakai loop yang mungkin udah ada di kode dia — kasih 1 contoh loop kecil dengan kasus lain sama sekali (misal dia lagi bikin fibonacci, kamu contohin looping buat cetak nama hari, bukan fibonacci lagi). Biar dia yang connect dots-nya sendiri ke kode dia.`,
+    taskBlock,
     ``,
     `KONTEKS — bahasa yang lagi dipakai: ${lang}.`,
     codeSnippet ? `Isi editor dia SEKARANG (baca buat ngerti dia lagi di mana, JANGAN ditulis ulang / dikoreksi / dijadiin contoh):\n\`\`\`\n${codeSnippet}\n\`\`\`` : `Editor dia masih kosong / belum ditulis.`,
-    outSnippet ? `Output/error terakhir dari Run:\n\`\`\`\n${outSnippet}\n\`\`\`` : ``,
+    outSnippet ? `Output/hasil test terakhir:\n\`\`\`\n${outSnippet}\n\`\`\`` : ``,
     NON_NEGOTIABLE,
   ]
     .filter(Boolean)
@@ -73,9 +87,10 @@ function buildSystem({ language, code, output }) {
  * @param {string} args.language
  * @param {string} args.code
  * @param {string} [args.output]
+ * @param {{title:string,level:string,fn:string,statement:string}|null} [args.task]
  * @param {{role:"user"|"assistant",content:string}[]} args.messages
  */
-export async function chat({ language, code, output, messages }) {
+export async function chat({ language, code, output, task, messages }) {
   const { client: llm, model } = getClient();
 
   const res = await llm.chat.completions.create({
@@ -86,7 +101,7 @@ export async function chat({ language, code, output, messages }) {
     // system-prompt reasoning eats the whole budget and content comes back empty.
     max_tokens: 1500,
     messages: [
-      { role: "system", content: buildSystem({ language, code, output }) },
+      { role: "system", content: buildSystem({ language, code, output, task }) },
       ...messages.slice(-12).map((m) => ({
         role: m.role === "assistant" ? "assistant" : "user",
         content: String(m.content).slice(0, 2000),
